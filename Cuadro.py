@@ -1,8 +1,11 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, simpledialog
+from tkinter import ttk, messagebox, simpledialog, filedialog
 import json
 import os
 from typing import Dict, List, Optional
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 
 class Producto:
     """Clase que representa un producto con sus talles"""
@@ -13,7 +16,6 @@ class Producto:
         self.talles = talles or {str(t): {"stock": 0, "vendidos": 0} for t in range(35, 41)}
     
     def to_dict(self) -> Dict:
-        """Convierte el producto a diccionario para serialización JSON"""
         return {
             "articulo": self.articulo,
             "color": self.color,
@@ -22,7 +24,6 @@ class Producto:
     
     @classmethod
     def from_dict(cls, data: Dict) -> 'Producto':
-        """Crea un producto desde un diccionario"""
         return cls(
             articulo=data.get("articulo", ""),
             color=data.get("color", ""),
@@ -42,7 +43,6 @@ class InventarioManager:
         self.cargar_datos()
     
     def cargar_datos(self):
-        """Carga los datos desde el archivo JSON"""
         if os.path.exists(self.archivo):
             try:
                 with open(self.archivo, 'r', encoding='utf-8') as f:
@@ -58,7 +58,6 @@ class InventarioManager:
             self._inicializar_datos_default()
     
     def _inicializar_datos_default(self):
-        """Inicializa con datos de ejemplo"""
         self.productos = [
             Producto("", "", {"35": {"stock": 0, "vendidos": 0}, "36": {"stock": 0, "vendidos": 0}, "37": {"stock": 0, "vendidos": 0}, "38": {"stock": 0, "vendidos": 0}, "39": {"stock": 0, "vendidos": 0}, "40": {"stock": 0, "vendidos": 0}}),
             Producto("", ""),
@@ -68,7 +67,6 @@ class InventarioManager:
         ]
     
     def guardar_datos(self):
-        """Guarda los datos en el archivo JSON"""
         try:
             data = {
                 "marca": self.marca,
@@ -83,62 +81,172 @@ class InventarioManager:
             print(f"Error al guardar: {e}")
             return False
     
+    def exportar_excel(self, ruta: str) -> bool:
+        """Exporta el inventario a un archivo Excel"""
+        try:
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Inventario"
+            
+            # Estilos
+            font_titulo = Font(name='Arial', size=16, bold=True, color='FFFFFF')
+            font_header = Font(name='Arial', size=11, bold=True, color='FFFFFF')
+            font_normal = Font(name='Arial', size=10)
+            font_bold = Font(name='Arial', size=10, bold=True)
+            
+            fill_marca = PatternFill(start_color='2196F3', end_color='2196F3', fill_type='solid')
+            fill_header = PatternFill(start_color='9E9E9E', end_color='9E9E9E', fill_type='solid')
+            fill_stock = PatternFill(start_color='E8F5E9', end_color='E8F5E9', fill_type='solid')
+            fill_vendidos = PatternFill(start_color='FFF9C4', end_color='FFF9C4', fill_type='solid')
+            
+            thin_border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+            
+            # Título (MARCA)
+            ws.merge_cells('A1:H1')
+            celda_titulo = ws['A1']
+            celda_titulo.value = f"INVENTARIO - {self.marca.upper()}" if self.marca else "INVENTARIO"
+            celda_titulo.font = font_titulo
+            celda_titulo.fill = fill_marca
+            celda_titulo.alignment = Alignment(horizontal='center', vertical='center')
+            ws.row_dimensions[1].height = 30
+            
+            # Fila de encabezados
+            headers = ['ARTÍCULO', 'COLOR', '35', '36', '37', '38', '39', '40']
+            for col, header in enumerate(headers, 1):
+                celda = ws.cell(row=2, column=col, value=header)
+                celda.font = font_header
+                celda.fill = fill_header
+                celda.alignment = Alignment(horizontal='center', vertical='center')
+                celda.border = thin_border
+            ws.row_dimensions[2].height = 25
+            
+            # Sub-encabezados (Stock/Vendidos)
+            ws.merge_cells('A3:B3')
+            ws.cell(row=3, column=1, value='STOCK / VENDIDOS').font = Font(name='Arial', size=9, italic=True)
+            ws.cell(row=3, column=1).alignment = Alignment(horizontal='center')
+            
+            for col in range(3, 9):
+                celda = ws.cell(row=3, column=col, value='Stock / Vendidos')
+                celda.font = Font(name='Arial', size=9, italic=True)
+                celda.alignment = Alignment(horizontal='center')
+            
+            # Datos de productos
+            fila = 4
+            for producto in self.productos:
+                # Solo exportar productos con artículo o color
+                if not producto.articulo and not producto.color:
+                    continue
+                
+                # Artículo
+                celda_art = ws.cell(row=fila, column=1, value=producto.articulo)
+                celda_art.font = font_bold
+                celda_art.alignment = Alignment(horizontal='center', vertical='center')
+                celda_art.border = thin_border
+                
+                # Color
+                celda_col = ws.cell(row=fila, column=2, value=producto.color)
+                celda_col.font = font_normal
+                celda_col.alignment = Alignment(horizontal='center', vertical='center')
+                celda_col.border = thin_border
+                
+                # Talles
+                for i, talle in enumerate(range(35, 41)):
+                    col = i + 3
+                    datos = producto.talles[str(talle)]
+                    
+                    # Stock en verde
+                    celda_stock = ws.cell(row=fila, column=col, value=datos['stock'])
+                    celda_stock.font = Font(name='Arial', size=10, bold=True, color='2E7D32')
+                    celda_stock.fill = fill_stock
+                    celda_stock.alignment = Alignment(horizontal='center')
+                    celda_stock.border = thin_border
+                    
+                    # Vendidos en la fila siguiente
+                    celda_vend = ws.cell(row=fila+1, column=col, value=datos['vendidos'])
+                    celda_vend.font = Font(name='Arial', size=9, color='1565C0')
+                    celda_vend.fill = fill_vendidos
+                    celda_vend.alignment = Alignment(horizontal='center')
+                    celda_vend.border = thin_border
+                
+                # Artículo y color también en la fila de vendidos
+                ws.cell(row=fila+1, column=1).border = thin_border
+                ws.cell(row=fila+1, column=2).border = thin_border
+                
+                fila += 2
+            
+            # Totales
+            fila += 1
+            ws.merge_cells(f'A{fila}:B{fila}')
+            celda_total = ws.cell(row=fila, column=1, value='TOTALES')
+            celda_total.font = Font(name='Arial', size=11, bold=True)
+            celda_total.alignment = Alignment(horizontal='center')
+            
+            for i, talle in enumerate(range(35, 41)):
+                col = i + 3
+                total_stock = sum(p.talles[str(talle)]['stock'] for p in self.productos)
+                total_vendidos = sum(p.talles[str(talle)]['vendidos'] for p in self.productos)
+                
+                celda = ws.cell(row=fila, column=col, value=f"S:{total_stock} V:{total_vendidos}")
+                celda.font = Font(name='Arial', size=10, bold=True)
+                celda.alignment = Alignment(horizontal='center')
+                celda.border = thin_border
+            
+            # Ajustar ancho de columnas
+            ws.column_dimensions['A'].width = 15
+            ws.column_dimensions['B'].width = 20
+            for col in range(3, 9):
+                ws.column_dimensions[get_column_letter(col)].width = 12
+            
+            # Guardar
+            wb.save(ruta)
+            return True
+        except Exception as e:
+            print(f"Error al exportar: {e}")
+            return False
+    
     def actualizar_articulo_default(self, articulo_nuevo: str) -> bool:
-        """Actualiza el artículo por defecto"""
         articulo_nuevo = articulo_nuevo.strip()
-        
         if not articulo_nuevo:
             return False
-        
         self.articulo_default = articulo_nuevo
         return self.guardar_datos()
     
     def actualizar_color_default(self, color_nuevo: str) -> bool:
-        """Actualiza el color por defecto"""
         color_nuevo = color_nuevo.strip()
-        
         if not color_nuevo:
             return False
-        
         self.color_default = color_nuevo
         return self.guardar_datos()
     
     def actualizar_articulo(self, articulo_viejo: str, articulo_nuevo: str) -> bool:
-        """Actualiza el artículo con validación de duplicados"""
         articulo_nuevo = articulo_nuevo.strip()
-        
         if not articulo_nuevo:
             return False
-        
-        # Verificar duplicados
         for producto in self.productos:
             if producto.articulo == articulo_nuevo and producto.articulo != articulo_viejo:
                 return False
-        
-        # Actualizar
         for producto in self.productos:
             if producto.articulo == articulo_viejo:
                 producto.articulo = articulo_nuevo
                 break
-        
         return self.guardar_datos()
     
     def actualizar_color(self, articulo: str, color_nuevo: str) -> bool:
-        """Actualiza el color de un producto"""
         color_nuevo = color_nuevo.strip()
-        
         if not color_nuevo:
             return False
-        
         for producto in self.productos:
             if producto.articulo == articulo:
                 producto.color = color_nuevo
                 break
-        
         return self.guardar_datos()
     
     def incrementar_stock(self, articulo: str, talle: str) -> bool:
-        """Incrementa el stock en 1"""
         for producto in self.productos:
             if producto.articulo == articulo:
                 producto.talles[talle]["stock"] += 1
@@ -146,7 +254,6 @@ class InventarioManager:
         return False
     
     def decrementar_stock(self, articulo: str, talle: str) -> tuple:
-        """Decrementa el stock y incrementa vendidos. Retorna (éxito, mensaje)"""
         for producto in self.productos:
             if producto.articulo == articulo:
                 if producto.talles[talle]["stock"] > 0:
@@ -158,7 +265,6 @@ class InventarioManager:
         return False, "Producto no encontrado"
     
     def resetear_vendidos(self):
-        """Resetea todos los vendidos a 0"""
         for producto in self.productos:
             for talle in producto.talles:
                 producto.talles[talle]["vendidos"] = 0
@@ -174,29 +280,23 @@ class InventarioApp:
         self.root.geometry("1400x800")
         self.root.minsize(1200, 600)
         
-        # Inicializar manager de inventario
         self.manager = InventarioManager("inventario.json")
         
-        # Configurar estilos
         self._configurar_estilos()
-        
-        # Crear interfaz
         self.crear_interfaz()
         self.actualizar_tabla()
     
     def _configurar_estilos(self):
-        """Configura los estilos de la aplicación"""
         style = ttk.Style()
         style.configure("Header.TLabel", font=("Arial", 10, "bold"))
         style.configure("Cell.TLabel", font=("Arial", 9))
     
     def crear_interfaz(self):
-        """Crea la interfaz gráfica completa"""
         # Frame superior con controles
         frame_superior = tk.Frame(self.root, bg="#f0f0f0")
         frame_superior.pack(fill=tk.X, padx=10, pady=10)
         
-        # Label de marca (editable)
+        # MARCA
         tk.Label(frame_superior, text="MARCA:", 
                 font=("Arial", 12, "bold"), bg="#f0f0f0").pack(side=tk.LEFT, padx=5)
         
@@ -209,7 +309,7 @@ class InventarioApp:
                                 command=self.editar_marca)
         self.btn_marca.pack(side=tk.LEFT, padx=5)
         
-        # Artículo por defecto (editable)
+        # ARTÍCULO
         tk.Label(frame_superior, text="ARTÍCULO:", 
                 font=("Arial", 12, "bold"), bg="#f0f0f0").pack(side=tk.LEFT, padx=5)
         
@@ -222,7 +322,7 @@ class InventarioApp:
                                     command=self.editar_articulo_default)
         self.btn_articulo.pack(side=tk.LEFT, padx=5)
         
-        # Color por defecto (editable)
+        # COLOR
         tk.Label(frame_superior, text="COLOR:", 
                 font=("Arial", 12, "bold"), bg="#f0f0f0").pack(side=tk.LEFT, padx=5)
         
@@ -238,14 +338,21 @@ class InventarioApp:
         # Separador
         tk.Frame(frame_superior, width=2, bg="gray").pack(side=tk.LEFT, fill=tk.Y, padx=10)
         
+        # Botón EXPORTAR EXCEL (NUEVO)
+        btn_exportar = tk.Button(frame_superior, text="📊 Exportar Excel", 
+                            command=self.exportar_a_excel,
+                            bg="#1976D2", fg="white", font=("Arial", 10, "bold"),
+                            cursor="hand2", relief="raised", borderwidth=2)
+        btn_exportar.pack(side=tk.LEFT, padx=5)
+        
         # Botones de acción
-        btn_reset = tk.Button(frame_superior, text=" Resetear Vendidos", 
+        btn_reset = tk.Button(frame_superior, text="🔄 Resetear Vendidos", 
                             command=self.confirmar_reset,
                             bg="#FF5722", fg="white", font=("Arial", 10, "bold"),
                             cursor="hand2", relief="raised", borderwidth=2)
         btn_reset.pack(side=tk.LEFT, padx=5)
         
-        btn_guardar = tk.Button(frame_superior, text="💾 Guardar Manual", 
+        btn_guardar = tk.Button(frame_superior, text="💾 Guardar", 
                             command=self.guardar_manual,
                             bg="#4CAF50", fg="white", font=("Arial", 10, "bold"),
                             cursor="hand2", relief="raised", borderwidth=2)
@@ -255,11 +362,9 @@ class InventarioApp:
         frame_tabla = tk.Frame(self.root)
         frame_tabla.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # Scrollbars
         scrollbar_y = ttk.Scrollbar(frame_tabla, orient=tk.VERTICAL)
         scrollbar_x = ttk.Scrollbar(frame_tabla, orient=tk.HORIZONTAL)
         
-        # Canvas
         self.canvas = tk.Canvas(frame_tabla, 
                             yscrollcommand=scrollbar_y.set,
                             xscrollcommand=scrollbar_x.set,
@@ -271,7 +376,6 @@ class InventarioApp:
         scrollbar_y.pack(side=tk.RIGHT, fill=tk.Y)
         scrollbar_x.pack(side=tk.BOTTOM, fill=tk.X)
         self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
         
         self.frame_interior = tk.Frame(self.canvas, bg="white")
         self.canvas_window = self.canvas.create_window((0, 0), 
@@ -285,8 +389,22 @@ class InventarioApp:
         self.canvas.bind("<Configure>",
                         lambda e: self.canvas.itemconfig(self.canvas_window, width=e.width))
     
-    def editar_marca(self):
+    def exportar_a_excel(self):
+        """Abre diálogo para exportar a Excel"""
+        ruta = filedialog.asksaveasfilename(
+            title="Exportar Inventario a Excel",
+            defaultextension=".xlsx",
+            filetypes=[("Archivos Excel", "*.xlsx"), ("Todos los archivos", "*.*")],
+            initialfile=f"inventario_{self.manager.marca}.xlsx"
+        )
         
+        if ruta:
+            if self.manager.exportar_excel(ruta):
+                messagebox.showinfo("Éxito", f"Inventario exportado correctamente a:\n{ruta}")
+            else:
+                messagebox.showerror("Error", "No se pudo exportar el inventario")
+    
+    def editar_marca(self):
         nueva_marca = simpledialog.askstring(
             "Editar Marca", 
             "Ingrese el nuevo nombre de la marca:",
@@ -302,14 +420,13 @@ class InventarioApp:
                 messagebox.showerror("Error", "No se pudo guardar la marca")
     
     def editar_articulo_default(self):
-        
         nuevo_articulo = simpledialog.askstring(
             "Editar Artículo por Defecto", 
             "Ingrese el nuevo código de artículo por defecto:",
             initialvalue=self.manager.articulo_default
         )
         
-        if nuevo_articulo is None:  
+        if nuevo_articulo is None:
             return
         
         if not nuevo_articulo.strip():
@@ -323,14 +440,13 @@ class InventarioApp:
             messagebox.showerror("Error", "No se pudo actualizar el artículo")
     
     def editar_color_default(self):
-        """Edita el color por defecto"""
         nuevo_color = simpledialog.askstring(
             "Editar Color por Defecto", 
             "Ingrese el nuevo color por defecto:",
             initialvalue=self.manager.color_default
         )
         
-        if nuevo_color is None:  # Cancelado
+        if nuevo_color is None:
             return
         
         if not nuevo_color.strip():
@@ -344,14 +460,13 @@ class InventarioApp:
             messagebox.showerror("Error", "No se pudo actualizar el color")
     
     def editar_articulo(self, articulo_actual: str):
-        """Edita el artículo con validación"""
         nuevo_articulo = simpledialog.askstring(
             "Editar Artículo", 
             f"Ingrese el nuevo código para el artículo '{articulo_actual}':",
             initialvalue=articulo_actual
         )
         
-        if nuevo_articulo is None:  # Cancelado
+        if nuevo_articulo is None:
             return
         
         if not nuevo_articulo.strip():
@@ -365,7 +480,6 @@ class InventarioApp:
             messagebox.showerror("Error", "Ya existe un producto con ese código o el valor es inválido")
     
     def editar_color(self, articulo: str):
-        """Edita el color del producto"""
         producto_actual = None
         for p in self.manager.productos:
             if p.articulo == articulo:
@@ -381,7 +495,7 @@ class InventarioApp:
             initialvalue=producto_actual.color
         )
         
-        if nuevo_color is None:  # Cancelado
+        if nuevo_color is None:
             return
         
         if not nuevo_color.strip():
@@ -395,14 +509,12 @@ class InventarioApp:
             messagebox.showerror("Error", "No se pudo actualizar el color")
     
     def manejar_incremento(self, articulo: str, talle: str):
-        """Maneja el incremento de stock"""
         if self.manager.incrementar_stock(articulo, talle):
             self.actualizar_tabla()
         else:
             messagebox.showerror("Error", "No se pudo incrementar el stock")
     
     def manejar_decremento(self, articulo: str, talle: str):
-        """Maneja el decremento de stock"""
         exito, mensaje = self.manager.decrementar_stock(articulo, talle)
         
         if exito:
@@ -411,7 +523,6 @@ class InventarioApp:
             messagebox.showwarning("Stock Insuficiente", mensaje)
     
     def confirmar_reset(self):
-        """Confirma y ejecuta el reseteo de vendidos"""
         if messagebox.askyesno("Confirmar Reset", 
                               "¿Está seguro que desea resetear todos los contadores de vendidos a 0?\n\nEsta acción no se puede deshacer."):
             if self.manager.resetear_vendidos():
@@ -421,47 +532,38 @@ class InventarioApp:
                 messagebox.showerror("Error", "No se pudo resetear los vendidos")
     
     def guardar_manual(self):
-        """Guardado manual con feedback"""
         if self.manager.guardar_datos():
             messagebox.showinfo("Éxito", "Datos guardados correctamente")
         else:
             messagebox.showerror("Error", "No se pudieron guardar los datos")
     
     def actualizar_tabla(self):
-        """Actualiza la tabla completa con los datos actuales"""
-        # Limpiar tabla
         for widget in self.frame_interior.winfo_children():
             widget.destroy()
         
-        # Actualizar botones superiores
         self.btn_marca.config(text=self.manager.marca)
         self.btn_articulo.config(text=self.manager.articulo_default)
         self.btn_color.config(text=self.manager.color_default)
         
-        # Configurar columnas
-        self.frame_interior.columnconfigure(0, weight=0, minsize=120)  # Artículo
-        self.frame_interior.columnconfigure(1, weight=0, minsize=150)  # Color
-        for i in range(2, 8):  # Talles 35-40
+        self.frame_interior.columnconfigure(0, weight=0, minsize=120)
+        self.frame_interior.columnconfigure(1, weight=0, minsize=150)
+        for i in range(2, 8):
             self.frame_interior.columnconfigure(i, weight=1, minsize=100)
         
-        # Encabezados
         headers = ["ARTÍCULO\n(click para editar)", "COLOR\n(click para editar)"] + [str(t) for t in range(35, 41)]
         
         for col, header in enumerate(headers):
             bg_color = "#2196F3" if col == 0 else "#FFC107" if col == 1 else "#9E9E9E"
             lbl = tk.Label(self.frame_interior, text=header, 
-                          font=("Arial", 9, "bold"), 
-                          bg=bg_color, fg="white",
-                          relief="raised", borderwidth=2,
-                          padx=10, pady=10)
+                        font=("Arial", 9, "bold"), 
+                        bg=bg_color, fg="white",
+                        relief="raised", borderwidth=2,
+                        padx=10, pady=10)
             lbl.grid(row=0, column=col, sticky="nsew")
         
-        # Filas de productos
         for fila, producto in enumerate(self.manager.productos, start=1):
-            # Alternar color de fondo
             bg_color = "#f9f9f9" if fila % 2 == 0 else "white"
             
-            # Botón Artículo
             btn_articulo = tk.Button(self.frame_interior, 
                                     text=producto.articulo,
                                     font=("Arial", 11, "bold"),
@@ -471,7 +573,6 @@ class InventarioApp:
                                     command=lambda a=producto.articulo: self.editar_articulo(a))
             btn_articulo.grid(row=fila, column=0, sticky="nsew", padx=2, pady=2)
             
-            # Botón Color
             btn_color = tk.Button(self.frame_interior, 
                                 text=producto.color,
                                 font=("Arial", 10),
@@ -481,19 +582,16 @@ class InventarioApp:
                                 command=lambda a=producto.articulo: self.editar_color(a))
             btn_color.grid(row=fila, column=1, sticky="nsew", padx=2, pady=2)
             
-            # Celdas de talles
             for i, talle in enumerate(range(35, 41)):
                 col = i + 2
                 talle_str = str(talle)
                 datos = producto.talles[talle_str]
                 
-                # Frame de celda
                 frame_celda = tk.Frame(self.frame_interior, 
                                     bg=bg_color,
                                     relief="sunken", borderwidth=1)
                 frame_celda.grid(row=fila, column=col, sticky="nsew", padx=2, pady=2)
                 
-                # Info de stock
                 lbl_stock = tk.Label(frame_celda, 
                                     text=f"Stock: {datos['stock']}",
                                     font=("Arial", 10, "bold"),
@@ -508,7 +606,6 @@ class InventarioApp:
                                     bg=bg_color)
                 lbl_vendidos.pack(pady=1)
                 
-                # Botones de control
                 frame_botones = tk.Frame(frame_celda, bg=bg_color)
                 frame_botones.pack(pady=3)
                 
@@ -532,10 +629,8 @@ class InventarioApp:
 
 
 def main():
-    """Función principal de la aplicación"""
     root = tk.Tk()
     
-    # Configurar icono (opcional)
     try:
         root.iconbitmap(default='')
     except:
@@ -543,7 +638,6 @@ def main():
     
     app = InventarioApp(root)
     
-    # Manejar cierre de ventana
     def on_closing():
         if messagebox.askokcancel("Salir", "¿Desea guardar los cambios antes de salir?"):
             app.manager.guardar_datos()

@@ -1,22 +1,22 @@
 {
-  "marca": "FRIENDS",
+  "marca": "",
   "articulo_default": "",
   "color_default": "",
   "productos": [
     {
-      "articulo": "1515",
-      "color": "NEGRO",
+      "articulo": "",
+      "color": "",
       "talles": {
         "35": {
-          "stock": 3,
+          "stock": 0,
           "vendidos": 0
         },
         "36": {
-          "stock": 2,
+          "stock": 0,
           "vendidos": 0
         },
         "37": {
-          "stock": 3,
+          "stock": 0,
           "vendidos": 0
         },
         "38": {
@@ -24,18 +24,18 @@
           "vendidos": 0
         },
         "39": {
-          "stock": 4,
+          "stock": 0,
           "vendidos": 0
         },
         "40": {
-          "stock": 1,
+          "stock": 0,
           "vendidos": 0
         }
       }
     },
     {
       "articulo": "",
-      "color": "PLATA",
+      "color": "",
       "talles": {
         "35": {
           "stock": 0,
@@ -46,7 +46,7 @@
           "vendidos": 0
         },
         "37": {
-          "stock": 2,
+          "stock": 0,
           "vendidos": 0
         },
         "38": {
