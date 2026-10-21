@@ -1,0 +1,157 @@
+{
+  "marca": "FRIENDS",
+  "articulo_default": "",
+  "color_default": "",
+  "productos": [
+    {
+      "articulo": "1515",
+      "color": "NEGRO",
+      "talles": {
+        "35": {
+          "stock": 3,
+          "vendidos": 0
+        },
+        "36": {
+          "stock": 2,
+          "vendidos": 0
+        },
+        "37": {
+          "stock": 3,
+          "vendidos": 0
+        },
+        "38": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "39": {
+          "stock": 4,
+          "vendidos": 0
+        },
+        "40": {
+          "stock": 1,
+          "vendidos": 0
+        }
+      }
+    },
+    {
+      "articulo": "",
+      "color": "PLATA",
+      "talles": {
+        "35": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "36": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "37": {
+          "stock": 2,
+          "vendidos": 0
+        },
+        "38": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "39": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "40": {
+          "stock": 0,
+          "vendidos": 0
+        }
+      }
+    },
+    {
+      "articulo": "",
+      "color": "",
+      "talles": {
+        "35": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "36": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "37": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "38": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "39": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "40": {
+          "stock": 0,
+          "vendidos": 0
+        }
+      }
+    },
+    {
+      "articulo": "",
+      "color": "",
+      "talles": {
+        "35": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "36": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "37": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "38": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "39": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "40": {
+          "stock": 0,
+          "vendidos": 0
+        }
+      }
+    },
+    {
+      "articulo": "",
+      "color": "",
+      "talles": {
+        "35": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "36": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "37": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "38": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "39": {
+          "stock": 0,
+          "vendidos": 0
+        },
+        "40": {
+          "stock": 0,
+          "vendidos": 0
+        }
+      }
+    }
+  ]
+}
